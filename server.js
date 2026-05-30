@@ -5,6 +5,14 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  next();
+});
+
 const client = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY });
 const conversationHistory = [];
 
@@ -22,6 +30,7 @@ app.post('/api/message', async (req, res) => {
     conversationHistory.push({ role: 'assistant', content: reply });
     res.json({ message: reply });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'JARVIS malfunction. Stand by.' });
   }
 });
