@@ -135,14 +135,32 @@ function toggleMic(){
 
 async function speak(text){
   try{
-    const res=await fetch('/api/speak',{
+    const voiceId = zwqMXWHsKBMIb9RPiWI0;
+    const apiKey = sk_cfacd5617296c9bfc570e2935d302ec40bf675d569d45171;
+    const res=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text:text.replace(/[*#_`]/g,'')})
+      headers:{
+        'xi-api-key': apiKey,
+        'Content-Type':'application/json',
+        'Accept':'audio/mpeg'
+      },
+      body:JSON.stringify({
+        text:text.replace(/[*#_`]/g,''),
+        model_id:'eleven_monolingual_v1',
+        voice_settings:{stability:0.5,similarity_boost:0.75}
+      })
     });
-    const blob=await res.blob();
-    const url=URL.createObjectURL(blob);
-    const audio=new Audio();
+    const arrayBuffer=await res.arrayBuffer();
+    const audioContext=new (window.AudioContext||window.webkitAudioContext)();
+    const decoded=await audioContext.decodeAudioData(arrayBuffer);
+    const source=audioContext.createBufferSource();
+    source.buffer=decoded;
+    source.connect(audioContext.destination);
+    source.start(0);
+  }catch(e){
+    console.error('Voice failed:',e);
+  }
+}
 audio.src=url;
 audio.type='audio/mpeg';
     audio.play();
