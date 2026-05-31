@@ -89,7 +89,7 @@ body{background:#000;color:#00d4ff;font-family:'Share Tech Mono',monospace;heigh
   </div>
 </div>
 <script>
-var history=[];
+var chatHistory=[];
 var busy=false;
 var recognition=null;
 var listening=false;
@@ -137,7 +137,7 @@ function speak(text){
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({text:text.replace(/[*#_`]/g,''),voiceId:VOICE_ID})
   }).then(function(r){
-    if(!r.ok){console.error('Speak API error',r.status);return;}
+    if(!r.ok){console.error('Speak API error',r.status);return null;}
     return r.arrayBuffer();
   }).then(function(buf){
     if(!buf)return;
@@ -158,7 +158,7 @@ function send(){
   if(!txt)return;
   inp.value='';
   addMsg('user',txt);
-  history.push({role:'user',content:txt});
+  chatHistory.push({role:'user',content:txt});
   busy=true;
   document.getElementById('btn').disabled=true;
   var chat=document.getElementById('chat');
@@ -167,18 +167,20 @@ function send(){
   tEl.innerHTML='<div class="lbl">J.A.R.V.I.S. // PROCESSING</div><div class="thinking"><span></span><span></span><span></span></div>';
   chat.appendChild(tEl);
   chat.scrollTop=chat.scrollHeight;
-  fetch('/api/message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:txt})})
-  .then(function(r){return r.json();})
+  fetch('/api/message',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({message:txt})
+  }).then(function(r){return r.json();})
   .then(function(data){
     var reply=data.message||'JARVIS encountered an anomaly. Standing by.';
-    history.push({role:'assistant',content:reply});
+    chatHistory.push({role:'assistant',content:reply});
     tEl.remove();
     addMsg('jarvis',reply);
     speak(reply);
     busy=false;
     document.getElementById('btn').disabled=false;
-  })
-  .catch(function(){
+  }).catch(function(){
     tEl.remove();
     addMsg('jarvis','Connection anomaly detected, sir. Please try again.');
     busy=false;
