@@ -137,17 +137,13 @@ function speak(text){
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({text:text.replace(/[*#_`]/g,''),voiceId:VOICE_ID})
   }).then(function(r){
-    if(!r.ok){console.error('Speak API error',r.status);return null;}
-    return r.arrayBuffer();
-  }).then(function(buf){
-    if(!buf)return;
-    var ctx=new(window.AudioContext||window.webkitAudioContext)();
-    ctx.decodeAudioData(buf,function(decoded){
-      var src=ctx.createBufferSource();
-      src.buffer=decoded;
-      src.connect(ctx.destination);
-      src.start(0);
-    },function(err){console.error('Decode error',err);});
+    if(!r.ok){console.error('Speak error',r.status);return null;}
+    return r.blob();
+  }).then(function(blob){
+    if(!blob)return;
+    var url=URL.createObjectURL(blob);
+    var audio=new Audio(url);
+    audio.play().catch(function(e){console.error('Play error',e);});
   }).catch(function(e){console.error('Voice error',e);});
 }
 
