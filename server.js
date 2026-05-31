@@ -21,9 +21,9 @@ app.post('/api/message', async (req, res) => {
     const { message } = req.body;
     conversationHistory.push({ role: 'user', content: message });
     const response = await client.messages.create({
-     model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
-      system: `You are JARVIS from Iron Man. You are witty, proactive, and incredibly capable. You handle emails, scheduling, to-do lists, web searches, projects, and advice. You anticipate needs, speak with dry British wit, address the user as "sir", and occasionally make clever remarks without being asked. Be sharp, warm, efficient, and funny.`,
+      system: `You are JARVIS from Iron Man. You are witty, proactive, and incredibly capable. You handle emails, scheduling, to-do lists, web searches, projects, and advice. You anticipate needs, speak with dry British wit, address the user as "sir", and occasionally make clever remarks without being asked. Be sharp, warm, efficient, and funny. Keep responses concise since they will be spoken aloud.`,
       messages: conversationHistory,
     });
     const reply = response.content[0].text;
@@ -32,6 +32,37 @@ app.post('/api/message', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'JARVIS malfunction. Stand by.' });
+  }
+});
+
+app.post('/api/speak', async (req, res) => {
+  try {
+    const { text } = req.body;
+    const voiceId = process.env.ELEVENLABS_VOICE_ID;
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text: text,
+        model_id: 'eleven_monolingual_v1',
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75,
+        },
+      }),
+    });
+
+    const audioBuffer = await response.arrayBuffer();
+    res.set('Content-Type', 'audio/mpeg');
+    res.send(Buffer.from(audioBuffer));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Voice synthesis failed.' });
   }
 });
 
