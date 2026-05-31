@@ -21,7 +21,7 @@ app.post('/api/message', async (req, res) => {
     const { message } = req.body;
     conversationHistory.push({ role: 'user', content: message });
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+     model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: `You are JARVIS from Iron Man. You are witty, proactive, and incredibly capable. You handle emails, scheduling, to-do lists, web searches, projects, and advice. You anticipate needs, speak with dry British wit, address the user as "sir", and occasionally make clever remarks without being asked. Be sharp, warm, efficient, and funny.`,
       messages: conversationHistory,
