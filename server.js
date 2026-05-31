@@ -37,28 +37,30 @@ app.post('/api/message', async (req, res) => {
 
 app.post('/api/speak', async (req, res) => {
   try {
-    const { text } = req.body;
-    const voiceId = process.env.ELEVENLABS_VOICE_ID;
+    const { text, voiceId } = req.body;
     const apiKey = process.env.ELEVENLABS_API_KEY;
-
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+    const vid = voiceId || process.env.ELEVENLABS_VOICE_ID;
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${vid}`, {
       method: 'POST',
       headers: {
         'xi-api-key': apiKey,
         'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg',
       },
       body: JSON.stringify({
         text: text,
         model_id: 'eleven_monolingual_v1',
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-        },
+        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
       }),
     });
-
+    if (!response.ok) {
+      const err = await response.text();
+      console.error('ElevenLabs error:', err);
+      return res.status(500).json({ error: 'Voice synthesis failed.' });
+    }
     const audioBuffer = await response.arrayBuffer();
     res.set('Content-Type', 'audio/mpeg');
+    res.set('Content-Length', audioBuffer.byteLength);
     res.send(Buffer.from(audioBuffer));
   } catch (error) {
     console.error(error);
