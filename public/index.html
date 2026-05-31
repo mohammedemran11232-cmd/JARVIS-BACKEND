@@ -89,23 +89,21 @@ body{background:#000;color:#00d4ff;font-family:'Share Tech Mono',monospace;heigh
   </div>
 </div>
 <script>
-const history=[];
-let busy=false;
-let recognition=null;
-let listening=false;
+var history=[];
+var busy=false;
+var recognition=null;
+var listening=false;
+var VOICE_ID='zwqMXWHsKBMIb9RPiWI0';
 
 function q(t){document.getElementById('inp').value=t;send();}
 
 function toggleMic(){
-  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){
-    alert('Speech recognition not supported. Please use Chrome.');
+  if(!(window.SpeechRecognition||window.webkitSpeechRecognition)){
+    alert('Please use Chrome for voice support.');
     return;
   }
-  if(listening){
-    recognition.stop();
-    return;
-  }
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(listening){recognition.stop();return;}
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   recognition=new SR();
   recognition.lang='en-US';
   recognition.interimResults=false;
@@ -116,7 +114,7 @@ function toggleMic(){
     document.getElementById('micbtn').textContent='🔴';
   };
   recognition.onresult=function(e){
-    const transcript=e.results[0][0].transcript;
+    var transcript=e.results[0][0].transcript;
     document.getElementById('inp').value=transcript;
     send();
   };
@@ -133,79 +131,66 @@ function toggleMic(){
   recognition.start();
 }
 
-async function speak(text){
-  try{
-    const voiceId = zwqMXWHsKBMIb9RPiWI0;
-    const apiKey = sk_cfacd5617296c9bfc570e2935d302ec40bf675d569d45171;
-    const res=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,{
-      method:'POST',
-      headers:{
-        'xi-api-key': apiKey,
-        'Content-Type':'application/json',
-        'Accept':'audio/mpeg'
-      },
-      body:JSON.stringify({
-        text:text.replace(/[*#_`]/g,''),
-        model_id:'eleven_monolingual_v1',
-        voice_settings:{stability:0.5,similarity_boost:0.75}
-      })
-    });
-    const arrayBuffer=await res.arrayBuffer();
-    const audioContext=new (window.AudioContext||window.webkitAudioContext)();
-    const decoded=await audioContext.decodeAudioData(arrayBuffer);
-    const source=audioContext.createBufferSource();
-    source.buffer=decoded;
-    source.connect(audioContext.destination);
-    source.start(0);
-  }catch(e){
-    console.error('Voice failed:',e);
-  }
-}
-audio.src=url;
-audio.type='audio/mpeg';
-    audio.play();
-  }catch(e){
-    console.error('Voice failed:',e);
-  }
+function speak(text){
+  fetch('/api/speak',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({text:text.replace(/[*#_`]/g,''),voiceId:VOICE_ID})
+  }).then(function(r){
+    if(!r.ok){console.error('Speak API error',r.status);return;}
+    return r.arrayBuffer();
+  }).then(function(buf){
+    if(!buf)return;
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    ctx.decodeAudioData(buf,function(decoded){
+      var src=ctx.createBufferSource();
+      src.buffer=decoded;
+      src.connect(ctx.destination);
+      src.start(0);
+    },function(err){console.error('Decode error',err);});
+  }).catch(function(e){console.error('Voice error',e);});
 }
 
-async function send(){
+function send(){
   if(busy)return;
-  const inp=document.getElementById('inp');
-  const txt=inp.value.trim();
+  var inp=document.getElementById('inp');
+  var txt=inp.value.trim();
   if(!txt)return;
   inp.value='';
   addMsg('user',txt);
   history.push({role:'user',content:txt});
   busy=true;
   document.getElementById('btn').disabled=true;
-  const chat=document.getElementById('chat');
-  const tEl=document.createElement('div');
+  var chat=document.getElementById('chat');
+  var tEl=document.createElement('div');
   tEl.className='msg jarvis';
   tEl.innerHTML='<div class="lbl">J.A.R.V.I.S. // PROCESSING</div><div class="thinking"><span></span><span></span><span></span></div>';
   chat.appendChild(tEl);
   chat.scrollTop=chat.scrollHeight;
-  try{
-    const res=await fetch('/api/message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:txt})});
-    const data=await res.json();
-    const reply=data.message||'JARVIS encountered an anomaly. Standing by.';
+  fetch('/api/message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:txt})})
+  .then(function(r){return r.json();})
+  .then(function(data){
+    var reply=data.message||'JARVIS encountered an anomaly. Standing by.';
     history.push({role:'assistant',content:reply});
     tEl.remove();
     addMsg('jarvis',reply);
     speak(reply);
-  }catch(e){
+    busy=false;
+    document.getElementById('btn').disabled=false;
+  })
+  .catch(function(){
     tEl.remove();
     addMsg('jarvis','Connection anomaly detected, sir. Please try again.');
-  }
-  busy=false;
-  document.getElementById('btn').disabled=false;
+    busy=false;
+    document.getElementById('btn').disabled=false;
+  });
 }
 
 function addMsg(role,text){
-  const chat=document.getElementById('chat');
-  const el=document.createElement('div');
+  var chat=document.getElementById('chat');
+  var el=document.createElement('div');
   el.className='msg '+role;
-  const lbl=role==='user'?'YOU // INPUT':'J.A.R.V.I.S. // RESPONSE';
+  var lbl=role==='user'?'YOU // INPUT':'J.A.R.V.I.S. // RESPONSE';
   el.innerHTML='<div class="lbl">'+lbl+'</div><div class="bub">'+text.replace(/</g,'&lt;')+'</div>';
   chat.appendChild(el);
   chat.scrollTop=chat.scrollHeight;
