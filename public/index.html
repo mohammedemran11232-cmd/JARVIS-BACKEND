@@ -142,7 +142,9 @@ async function speak(text){
     });
     const blob=await res.blob();
     const url=URL.createObjectURL(blob);
-    const audio=new Audio(url);
+    const audio=new Audio();
+audio.src=url;
+audio.type='audio/mpeg';
     audio.play();
   }catch(e){
     console.error('Voice failed:',e);
