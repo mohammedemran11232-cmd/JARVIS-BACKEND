@@ -83,7 +83,7 @@ body{background:#000;color:#00d4ff;font-family:'Share Tech Mono',monospace;heigh
     </div>
   </div>
   <div id="inputbar">
-    <button id="micbtn" onclick="toggleMic()" title="Hold to speak">🎤</button>
+    <button id="micbtn" onclick="toggleMic()" title="Click to speak">🎤</button>
     <input id="inp" type="text" placeholder="SPEAK YOUR COMMAND, SIR..." autocomplete="off"/>
     <button id="btn" onclick="send()">EXECUTE</button>
   </div>
@@ -98,7 +98,7 @@ function q(t){document.getElementById('inp').value=t;send();}
 
 function toggleMic(){
   if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){
-    alert('Speech recognition not supported in this browser. Use Chrome.');
+    alert('Speech recognition not supported. Please use Chrome.');
     return;
   }
   if(listening){
@@ -110,22 +110,22 @@ function toggleMic(){
   recognition.lang='en-US';
   recognition.interimResults=false;
   recognition.maxAlternatives=1;
-  recognition.onstart=()=>{
+  recognition.onstart=function(){
     listening=true;
     document.getElementById('micbtn').classList.add('listening');
     document.getElementById('micbtn').textContent='🔴';
   };
-  recognition.onresult=(e)=>{
+  recognition.onresult=function(e){
     const transcript=e.results[0][0].transcript;
     document.getElementById('inp').value=transcript;
     send();
   };
-  recognition.onerror=()=>{
+  recognition.onerror=function(){
     listening=false;
     document.getElementById('micbtn').classList.remove('listening');
     document.getElementById('micbtn').textContent='🎤';
   };
-  recognition.onend=()=>{
+  recognition.onend=function(){
     listening=false;
     document.getElementById('micbtn').classList.remove('listening');
     document.getElementById('micbtn').textContent='🎤';
@@ -134,29 +134,19 @@ function toggleMic(){
 }
 
 async function speak(text){
-  try {
-    const res = await fetch('/api/speak', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({text: text.replace(/[*#_`]/g, '')})
+  try{
+    const res=await fetch('/api/speak',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:text.replace(/[*#_`]/g,'')})
     });
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
+    const blob=await res.blob();
+    const url=URL.createObjectURL(blob);
+    const audio=new Audio(url);
     audio.play();
-  } catch(e) {
-    console.error('Voice failed:', e);
+  }catch(e){
+    console.error('Voice failed:',e);
   }
-}
-  const clean=text.replace(/[*#_`]/g,'');
-  const utter=new SpeechSynthesisUtterance(clean);
-  utter.rate=0.95;
-  utter.pitch=0.85;
-  utter.volume=1;
-  const voices=window.speechSynthesis.getVoices();
-  const preferred=voices.find(v=>v.name.includes('Daniel')||v.name.includes('Google UK English Male')||v.name.includes('British'));
-  if(preferred) utter.voice=preferred;
-  window.speechSynthesis.speak(utter);
 }
 
 async function send(){
@@ -196,13 +186,12 @@ function addMsg(role,text){
   const el=document.createElement('div');
   el.className='msg '+role;
   const lbl=role==='user'?'YOU // INPUT':'J.A.R.V.I.S. // RESPONSE';
-  el.innerHTML=`<div class="lbl">${lbl}</div><div class="bub">${text.replace(/</g,'&lt;')}</div>`;
+  el.innerHTML='<div class="lbl">'+lbl+'</div><div class="bub">'+text.replace(/</g,'&lt;')+'</div>';
   chat.appendChild(el);
   chat.scrollTop=chat.scrollHeight;
 }
 
-window.speechSynthesis.onvoiceschanged=()=>{ window.speechSynthesis.getVoices(); };
-document.getElementById('inp').addEventListener('keydown',e=>{if(e.key==='Enter')send();});
+document.getElementById('inp').addEventListener('keydown',function(e){if(e.key==='Enter')send();});
 </script>
 </body>
 </html>
